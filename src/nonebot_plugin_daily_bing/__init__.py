@@ -2,18 +2,27 @@ import re
 import json
 
 import aiofiles
-from nonebot import require
+from nonebot.log import logger
 from nonebot.permission import SUPERUSER
+from nonebot import require, get_plugin_config
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
+require("nonebot_plugin_apscheduler")
 import nonebot_plugin_localstore as store
-from nonebot_plugin_alconna.uniseg import UniMessage
-from nonebot_plugin_alconna import Option, Args, Alconna, CommandMeta, on_alconna
+from nonebot_plugin_apscheduler import scheduler
+from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget, Target
+from nonebot_plugin_alconna import Option, Args, Alconna, CommandMeta, on_alconna, Match
 
 from .config import Config
-from .utils import fetch_daily_bing_data, fetch_randomly_daily_bing_data
+from .utils import (
+    fetch_daily_bing_data,
+    fetch_randomly_daily_bing_data,
+    remove_daily_bing_task,
+    schedule_daily_bing_task,
+    generate_job_id,
+)
 
 __plugin_meta__ = PluginMetadata(
     name="每日必应壁纸",
@@ -29,8 +38,10 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 
-
+plugin_config = get_plugin_config(Config)
+default_time = plugin_config.daily_bing_default_send_time
 daily_bing_cache_json = store.get_plugin_cache_file("daily_bing.json")
+task_config_file = store.get_plugin_data_file("daily_bing_task_config.json")
 
 
 def is_valid_time_format(time_str: str) -> bool:
@@ -125,3 +136,63 @@ async def handle_andomly_daily_bing():
     ).image(
         raw=data
     ).send()
+
+
+@daily_bing_setting.assign("status")
+async def daily_bing_status(event, target: MsgTarget):
+    if not task_config_file.exists():
+        await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+    try:
+        async with aiofiles.open(task_config_file, encoding="utf-8") as f:
+            content = await f.read()
+            config = json.loads(content)
+        tasks = config.get("tasks") or []
+    except Exception as e:
+        await daily_bing_setting.finish(f"加载任务配置时发生错误：{e}")
+    if not tasks:
+        await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+    current_target = target
+    for task in tasks:
+        target_data = task["target"]
+        data_target = Target.load(target_data)
+        if data_target == current_target:
+            job_id = generate_job_id(current_target)
+            job = scheduler.get_job(job_id)
+            if job:
+                next_run = (
+                    job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+                    if job.next_run_time else "未知"
+                )
+                await daily_bing_setting.finish(
+                    f"今日必应壁纸定时任务已开启 | 下次发送时间: {next_run}"
+                )
+            else:
+                await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+    await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+
+
+@daily_bing_setting.assign("stop")
+async def daily_bing_stop(target: MsgTarget):
+    await remove_daily_bing_task(target)
+    await daily_bing_setting.finish("已关闭今日必应壁纸定时任务")
+
+
+@daily_bing_setting.assign("start")
+async def daily_bing_start(send_time: Match[str], target: MsgTarget):
+    if send_time.available:
+        time = send_time.result
+        if not is_valid_time_format(time):
+            await daily_bing_setting.send("时间格式不正确,请使用 HH:MM 格式")
+        try:
+            await schedule_daily_bing_task(time, target)
+            await daily_bing_setting.send(
+                f"已开启今日必应壁纸定时任务,发送时间为 {time}"
+            )
+        except Exception as e:
+            logger.error(f"设置今日必应壁纸定时任务时发生错误:{e}")
+            await daily_bing_setting.finish("设置今日必应壁纸定时任务时发生错误")
+    else:
+        await schedule_daily_bing_task(default_time, target)
+        await daily_bing_setting.finish(
+            f"已开启今日必应壁纸定时任务,默认发送时间为 {default_time}"
+        )
