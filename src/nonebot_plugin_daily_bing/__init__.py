@@ -120,7 +120,7 @@ async def handle_daily_bing():
         content = await f.read()
         data = json.loads(content)
     await UniMessage.text(
-        f"今日必应壁纸\n{data.get('imgtitle','今日必应壁纸')}"
+        f"{data.get('imgtitle','今日必应壁纸')}"
     ).image(
         url=data.get("imgurl")
     ).send()

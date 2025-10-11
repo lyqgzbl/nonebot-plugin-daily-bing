@@ -158,7 +158,7 @@ async def send_daily_bing(target: MsgTarget):
         content = await f.read()
         data = json.loads(content)
     await UniMessage.text(
-        f"今日必应壁纸\n{data.get('imgtitle','今日必应壁纸')}"
+        f"{data.get('imgtitle','今日必应壁纸')}"
     ).image(
         url=data["imgurl"]
     ).send(
