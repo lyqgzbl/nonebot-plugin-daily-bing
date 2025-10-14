@@ -1,18 +1,25 @@
 import json
 import hashlib
 import asyncio
+from datetime import timedelta
 
 import httpx
 import aiofiles
 from nonebot.log import logger
+from nonebot import get_plugin_config
 import nonebot_plugin_localstore as store
 from nonebot_plugin_apscheduler import scheduler
 from nonebot import get_driver, get_bot, get_bots
+from nonebot_plugin_argot import Text, add_argot, get_message_id
 from nonebot_plugin_alconna.uniseg import MsgTarget, Target, UniMessage
+
+from .config import Config
 
 
 driver = get_driver()
 config_lock = asyncio.Lock()
+plugin_config = get_plugin_config(Config)
+hd_image = plugin_config.daily_bing_hd_image
 DAILY_BING_API_URL = "https://bing.ee123.net/img/"
 RANDOMLY_DAILY_BING_API_URL = "https://bing.ee123.net/img/rand"
 daily_bing_cache_json = store.get_plugin_cache_file("daily_bing.json")
@@ -157,13 +164,24 @@ async def send_daily_bing(target: MsgTarget):
     async with aiofiles.open(str(daily_bing_cache_json), encoding="utf-8") as f:
         content = await f.read()
         data = json.loads(content)
-    await UniMessage.text(
+        explanation = data.get("imgdetail", "")
+        explanation = explanation.replace("<p>", "").replace("</p>", "")
+        if hd_image:
+            img_url = data.get("imgurl_d") or data.get("imgurl")
+    message = await UniMessage.text(
         f"{data.get('imgtitle','今日必应壁纸')}"
     ).image(
-        url=data["imgurl"]
+        url=img_url
     ).send(
         target=target,
         bot=bot,
+    )
+    await add_argot(
+        message_id=get_message_id(message) or "",
+        name="explanation",
+        command="简介",
+        segment=Text(explanation),
+        expired_at=timedelta(minutes=2),
     )
 
 
@@ -223,7 +241,6 @@ async def restore_daily_bing_tasks():
             logger.debug("没有找到任何每日必应壁纸定时任务配置")
     except Exception as e:
         logger.error(f"恢复每日必应壁纸定时任务时发生错误：{e}")
-
 
 
 @scheduler.scheduled_job("cron", hour=0, minute=0, id="clear_daily_bing_cache")

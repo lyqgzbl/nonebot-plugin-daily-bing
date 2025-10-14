@@ -7,11 +7,14 @@ from nonebot.permission import SUPERUSER
 from nonebot import require, get_plugin_config
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
+require("nonebot_plugin_argot")
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
+from nonebot_plugin_argot import Text
 import nonebot_plugin_localstore as store
 from nonebot_plugin_apscheduler import scheduler
+from nonebot_plugin_argot.extension import ArgotExtension
 from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget, Target
 from nonebot_plugin_alconna import Option, Args, Alconna, CommandMeta, on_alconna, Match
 
@@ -39,6 +42,7 @@ __plugin_meta__ = PluginMetadata(
 )
 
 plugin_config = get_plugin_config(Config)
+daily_bing_hd_image = plugin_config.daily_bing_hd_image
 default_time = plugin_config.daily_bing_default_send_time
 daily_bing_cache_json = store.get_plugin_cache_file("daily_bing.json")
 task_config_file = store.get_plugin_data_file("daily_bing_task_config.json")
@@ -67,6 +71,8 @@ daily_bing_command = on_alconna(
     use_cmd_start=True,
     priority=10,
     block=True,
+    extensions=[ArgotExtension()],
+
 )
 
 
@@ -119,11 +125,23 @@ async def handle_daily_bing():
     async with aiofiles.open(str(daily_bing_cache_json), encoding="utf-8") as f:
         content = await f.read()
         data = json.loads(content)
+    explanation = data.get("imgdetail", "")
+    explanation = explanation.replace("<p>", "").replace("</p>", "")
+    if daily_bing_hd_image:
+        img_url = data.get("imgurl_d") or data.get("imgurl")
     await UniMessage.text(
         f"{data.get('imgtitle','今日必应壁纸')}"
     ).image(
-        url=data.get("imgurl")
-    ).send()
+        url=img_url
+    ).send(
+        reply_to=True,
+        argot={
+            "name": "explanation",
+            "segment": Text(explanation),
+            "command": "简介",
+            "expired_at": 360,
+        },
+    )
 
 
 @randomly_daily_bing_command.handle()
@@ -135,7 +153,9 @@ async def handle_andomly_daily_bing():
         "随机必应壁纸"
     ).image(
         raw=data
-    ).send()
+    ).send(
+        reply_to=True,
+    )
 
 
 @daily_bing_setting.assign("status")
