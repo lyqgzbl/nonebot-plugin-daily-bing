@@ -55,3 +55,9 @@ pip install nonebot-plugin-daily-bing
 - 类型：`str`
 - 默认值：`13:00`
 - 说明：每日必应壁纸的默认发送时间
+
+### daily_bing_hd_image [选填]
+
+- 类型：`bool`
+- 默认值：`False`
+- 说明：是否启用高清必应壁纸
