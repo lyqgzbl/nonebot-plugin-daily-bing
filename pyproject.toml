@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-daily-bing"
-version = "0.1.0"
+version = "1.0.0"
 description = "NoneBot 每日必应壁纸" 
 readme = "README.md"
 authors = [
