@@ -61,3 +61,15 @@ pip install nonebot-plugin-daily-bing
 - 类型：`bool`
 - 默认值：`False`
 - 说明：是否启用高清必应壁纸
+
+### daily_bing_infopuzzle [选填]
+
+- 类型：`bool`
+- 默认值：`False`
+- 说明：是否启用必应壁纸拼图
+
+### daily_bing_infopuzzle_dark_mode [选填]
+
+- 类型：`bool`
+- 默认值：`False`
+- 说明：是否使用暗色模式的必应壁纸拼图
