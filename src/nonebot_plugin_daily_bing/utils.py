@@ -14,6 +14,7 @@ from nonebot_plugin_argot import Text, add_argot, get_message_id
 from nonebot_plugin_alconna.uniseg import MsgTarget, Target, UniMessage
 
 from .config import Config
+from .infopuuzzle import generate_daily_bing_image
 
 
 driver = get_driver()
@@ -21,6 +22,7 @@ config_lock = asyncio.Lock()
 plugin_config = get_plugin_config(Config)
 hd_image = plugin_config.daily_bing_hd_image
 DAILY_BING_API_URL = "https://bing.ee123.net/img/"
+daily_bing_infopuzzle = plugin_config.daily_bing_infopuzzle
 RANDOMLY_DAILY_BING_API_URL = "https://bing.ee123.net/img/rand"
 daily_bing_cache_json = store.get_plugin_cache_file("daily_bing.json")
 task_config_file = store.get_plugin_data_file("daily_bing_task_config.json")
@@ -117,7 +119,7 @@ async def remove_daily_bing_task(target: MsgTarget):
         logger.info(f"未找到每日必应壁纸定时任务 (目标: {target})")
 
 
-async def load_task_configs(locked: bool = False):
+async def load_task_configs(locked: bool = False) -> list[dict]:
     if not task_config_file.exists():
         return []
     async def _load():
@@ -167,22 +169,39 @@ async def send_daily_bing(target: MsgTarget):
         explanation = data.get("imgdetail", "")
         explanation = explanation.replace("<p>", "").replace("</p>", "")
         if hd_image:
-            img_url = data.get("imgurl_d") or data.get("imgurl")
-    message = await UniMessage.text(
-        f"{data.get('imgtitle','今日必应壁纸')}"
-    ).image(
-        url=img_url
-    ).send(
-        target=target,
-        bot=bot,
-    )
-    await add_argot(
-        message_id=get_message_id(message) or "",
-        name="explanation",
-        command="简介",
-        segment=Text(explanation),
-        expired_at=timedelta(minutes=2),
-    )
+            img_url = data.get("imgurl_d")
+        else:
+            img_url = data.get("imgurl")
+    if not daily_bing_infopuzzle:
+        message = await UniMessage.text(
+            f"{data.get('imgtitle','今日必应壁纸')}"
+        ).image(
+            url=img_url
+        ).send(
+            target=target,
+            bot=bot,
+        )
+        await add_argot(
+            message_id=get_message_id(message) or "",
+            name="explanation",
+            command="简介",
+            segment=Text(explanation),
+            expired_at=timedelta(minutes=2),
+        )
+    else:
+        img_bytes = await generate_daily_bing_image()
+        if not img_bytes:
+            await UniMessage.text("生成今日必应壁纸图片失败请稍后再试").send(
+                target=target,
+                bot=bot,
+            )
+            return
+        await UniMessage.image(
+            raw=img_bytes
+        ).send(
+            target=target,
+            bot=bot,
+        )
 
 
 async def schedule_daily_bing_task(send_time: str, target: MsgTarget):

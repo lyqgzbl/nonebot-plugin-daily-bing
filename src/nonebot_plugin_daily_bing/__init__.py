@@ -10,6 +10,7 @@ from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 require("nonebot_plugin_argot")
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
+require("nonebot_plugin_htmlrender")
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_argot import Text
 import nonebot_plugin_localstore as store
@@ -19,6 +20,7 @@ from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget, Target
 from nonebot_plugin_alconna import Option, Args, Alconna, CommandMeta, on_alconna, Match
 
 from .config import Config
+from .infopuuzzle import generate_daily_bing_image
 from .utils import (
     fetch_daily_bing_data,
     fetch_randomly_daily_bing_data,
@@ -44,6 +46,7 @@ __plugin_meta__ = PluginMetadata(
 plugin_config = get_plugin_config(Config)
 daily_bing_hd_image = plugin_config.daily_bing_hd_image
 default_time = plugin_config.daily_bing_default_send_time
+daily_bing_infopuzzle = plugin_config.daily_bing_infopuzzle
 daily_bing_cache_json = store.get_plugin_cache_file("daily_bing.json")
 task_config_file = store.get_plugin_data_file("daily_bing_task_config.json")
 
@@ -82,6 +85,7 @@ randomly_daily_bing_command = on_alconna(
         meta=CommandMeta(
             compact=True,
             description="获取随机必应壁纸",
+            usage="/随机必应壁纸",
             example="/随机必应壁纸",
         ),
     ),
@@ -129,19 +133,29 @@ async def handle_daily_bing():
     explanation = explanation.replace("<p>", "").replace("</p>", "")
     if daily_bing_hd_image:
         img_url = data.get("imgurl_d") or data.get("imgurl")
-    await UniMessage.text(
-        f"{data.get('imgtitle','今日必应壁纸')}"
-    ).image(
-        url=img_url
-    ).send(
-        reply_to=True,
-        argot={
-            "name": "explanation",
-            "segment": Text(explanation),
-            "command": "简介",
-            "expired_at": 360,
-        },
-    )
+    if not daily_bing_infopuzzle:
+        await UniMessage.text(
+            f"{data.get('imgtitle','今日必应壁纸')}"
+        ).image(
+            url=img_url
+        ).send(
+            reply_to=True,
+            argot={
+                "name": "explanation",
+                "segment": Text(explanation),
+                "command": "简介",
+                "expired_at": 360,
+            },
+        )
+    else:
+        img_bytes = await generate_daily_bing_image()
+        if not img_bytes:
+            await daily_bing_command.finish("生成今日必应壁纸图片失败请稍后再试")
+        await UniMessage.image(
+            raw=img_bytes
+        ).send(
+            reply_to=True,
+        )
 
 
 @randomly_daily_bing_command.handle()
