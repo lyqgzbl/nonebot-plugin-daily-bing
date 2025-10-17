@@ -31,6 +31,7 @@ jobs:
         run: |
           docker run \
             --rm \
+            --uesr root \
             -e RENOVATE_TOKEN="${{ secrets.RENOVATE_TOKEN }}" \
             -e RENOVATE_PLATFORM="${{ env.RENOVATE_PLATFORM }}" \
             -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
