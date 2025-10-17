@@ -47,4 +47,4 @@ jobs:
             "${{ env.IMAGE_NAME }}" \
             --base-dir /usr/app/repo \
             --cache-dir /tmp/renovate \
-            --repositories "${{ github.repository }}"
+            "${{ github.repository }}"
