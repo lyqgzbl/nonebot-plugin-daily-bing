@@ -44,7 +44,7 @@ jobs:
             -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
             -e RENOVATE_ALLOWED_COMMANDS='${{ env.RENOVATE_ALLOWED_COMMANDS }}' \
             -v "$PWD:/usr/app/repo" \
-            renovate/renovate:latest \
+            "${{ env.IMAGE_NAME }}" \
             --base-dir /usr/app/repo \
             --cache-dir /tmp/renovate \
-            "${{ github.repository }}"
+            --repositories "${{ github.repository }}"
