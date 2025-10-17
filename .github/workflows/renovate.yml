@@ -7,7 +7,7 @@ on:
 
 env:
   RENOVATE_PLATFORM: 'github'
-  LOG_LEVEL: 'info' 
+  LOG_LEVEL: 'debug' 
   RENOVATE_ALLOWED_COMMANDS: '["^(pip install uv)$", "^(uv lock)$"]'
 
 jobs:

@@ -8,9 +8,7 @@
     ":automergePr",
     ":disableRateLimiting"
   ],
-  "prCreation": "immediate",
-  "logLevel": "debug",
-  
+  "prCreation": "immediate",  
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
   "packageRules": [
