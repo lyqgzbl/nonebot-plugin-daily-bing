@@ -34,7 +34,7 @@ jobs:
             -e RENOVATE_TOKEN="${{ secrets.RENOVATE_TOKEN }}" \
             -e RENOVATE_PLATFORM="${{ env.RENOVATE_PLATFORM }}" \
             -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
-            -e RENOVATE_ALLOWED_COMMANDS="${{ env.RENOVATE_ALLOWED_COMMANDS }}" \
+            -e RENOVATE_ALLOWED_COMMANDS='${{ env.RENOVATE_ALLOWED_COMMANDS }}' \
             -v "$PWD:/usr/app/repo" \
             renovate/renovate:latest \
             --autodiscover=false \
