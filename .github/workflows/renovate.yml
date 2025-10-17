@@ -31,7 +31,7 @@ jobs:
             - name: 🚀 Run Renovate Self-Hosted
               uses: docker://renovate/renovate:latest
               env:
-                GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+                RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
                 RENOVATE_ALLOWED_COMMANDS: ${{ env.RENOVATE_ALLOWED_COMMANDS }}
                 RENOVATE_PLATFORM: ${{ env.RENOVATE_PLATFORM }}
                 LOG_LEVEL: ${{ env.LOG_LEVEL }}
