@@ -1,4 +1,4 @@
-name: ⚙️ 依赖自动更新 (Renovate Self-Hosted)
+name: Renovate Self-Hosteds
 
 on:
   schedule:
@@ -8,6 +8,7 @@ on:
 env:
   RENOVATE_PLATFORM: 'github'
   LOG_LEVEL: 'info' 
+  RENOVATE_ALLOWED_COMMANDS: '["^(pip install uv)$", "^(uv lock)$"]'
 
 jobs:
   renovate:
@@ -27,11 +28,15 @@ jobs:
           git config --global user.name "Renovate Bot"
 
       - name: 🚀 Run Renovate Self-Hosted
-        uses: docker://renovate/renovate:latest
-        env:
-          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-          RENOVATE_PLATFORM: ${{ env.RENOVATE_PLATFORM }}
-          LOG_LEVEL: ${{ env.LOG_LEVEL }}
-          RENOVATE_REPOSITORIES: ${{ github.repository }}
-        with:
-          args: --allowed-commands '["^(pip install uv)$", "^(uv lock)$"]'
+        run: |
+          docker run \
+            --rm \
+            -e RENOVATE_TOKEN="${{ secrets.RENOVATE_TOKEN }}" \
+            -e RENOVATE_PLATFORM="${{ env.RENOVATE_PLATFORM }}" \
+            -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
+            -e RENOVATE_ALLOWED_COMMANDS="${{ env.RENOVATE_ALLOWED_COMMANDS }}" \
+            -v "$PWD:/usr/app/repo" \
+            renovate/renovate:latest \
+            --autodiscover=false \
+            --repositories="${{ github.repository }}" \
+            --base-dir=/usr/app/repo
