@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
+    "mergeConfidence:all-badges",
     "config:recommended",
     ":semanticCommits",
     ":automergeMinor",
@@ -9,7 +10,12 @@
   ],
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
-  "allowedPostUpgradeCommands": ["uv lock"],
+
+  "allowedPostUpgradeCommands": [
+    "^(pip install uv)$",
+    "^(uv lock)$"
+  ],
+
   "packageRules": [
     {
       "matchPackageNames": [
@@ -25,17 +31,17 @@
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["uv lock"],
+        "commands": ["pip install uv", "uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
     {
-      "matchPackagePatterns": ["^aiofiles$", "^httpx$"],
+      "matchPackageNames": ["aiofiles", "httpx"],
       "groupName": "Base Python Libraries",
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["uv lock"],
+        "commands": ["pip install uv", "uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
@@ -45,7 +51,7 @@
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["uv lock"],
+        "commands": ["pip install uv", "uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
