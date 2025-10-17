@@ -37,6 +37,4 @@ jobs:
             -e RENOVATE_ALLOWED_COMMANDS='${{ env.RENOVATE_ALLOWED_COMMANDS }}' \
             -v "$PWD:/usr/app/repo" \
             renovate/renovate:latest \
-            --autodiscover false \
-            --repositories "${{ github.repository }}" \
             --base-dir /usr/app/repo
