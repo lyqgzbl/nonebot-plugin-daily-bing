@@ -1,38 +1,37 @@
-name: Renovate Self-Hosted
+name: ⚙️ 依赖自动更新 (Renovate Self-Hosted)
 
 on:
-    schedule:
-        - cron: '0 0 * * MON' 
-    workflow_dispatch: 
+  schedule:
+    - cron: '0 0 * * MON' 
+  workflow_dispatch: 
 
 env:
-    RENOVATE_ALLOWED_COMMANDS: '["^(pip install uv)$", "^(uv lock)$"]'
-    RENOVATE_PLATFORM: 'github'
-    LOG_LEVEL: 'info' 
+  RENOVATE_PLATFORM: 'github'
+  LOG_LEVEL: 'info' 
 
 jobs:
-    renovate:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
+  renovate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          
+      - name: 👤 Setup Git Identity
+        run: |
+          git config --global user.email "renovate[bot]@users.noreply.github.com"
+          git config --global user.name "Renovate Bot"
 
-        steps:
-            - name: ⬇️ Checkout Repository
-              uses: actions/checkout@v4
-              with:
-                token: ${{ secrets.RENOVATE_TOKEN }}
-
-            - name: 👤 Setup Git Identity
-              run: |
-                git config --global user.email "renovate[bot]@users.noreply.github.com"
-                git config --global user.name "Renovate Bot"
-
-            - name: 🚀 Run Renovate Self-Hosted
-              uses: docker://renovate/renovate:latest
-              env:
-                RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-                RENOVATE_ALLOWED_COMMANDS: ${{ env.RENOVATE_ALLOWED_COMMANDS }}
-                RENOVATE_PLATFORM: ${{ env.RENOVATE_PLATFORM }}
-                LOG_LEVEL: ${{ env.LOG_LEVEL }}
-                RENOVATE_REPOSITORIES: ${{ github.repository }}
+      - name: 🚀 Run Renovate Self-Hosted
+        uses: docker://renovate/renovate:latest
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_PLATFORM: ${{ env.RENOVATE_PLATFORM }}
+          LOG_LEVEL: ${{ env.LOG_LEVEL }}
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+        with:
+          args: --allowed-commands '["^(pip install uv)$", "^(uv lock)$"]'
