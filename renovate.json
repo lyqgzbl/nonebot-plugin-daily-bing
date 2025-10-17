@@ -9,6 +9,7 @@
   ],
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
+  "allowedPostUpgradeCommands": ["uv lock"],
   "packageRules": [
     {
       "matchPackageNames": [
