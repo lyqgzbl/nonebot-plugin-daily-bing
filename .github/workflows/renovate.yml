@@ -38,4 +38,5 @@ jobs:
             -v "$PWD:/usr/app/repo" \
             renovate/renovate:latest \
             --base-dir /usr/app/repo \
-            --cache-dir /tmp/renovate
+            --cache-dir /tmp/renovate \
+            "${{ github.repository }}"
