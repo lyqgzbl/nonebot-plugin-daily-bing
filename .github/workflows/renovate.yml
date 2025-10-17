@@ -31,11 +31,11 @@ jobs:
         run: |
           docker run \
             --rm \
-            --user root \
             -e RENOVATE_TOKEN="${{ secrets.RENOVATE_TOKEN }}" \
             -e RENOVATE_PLATFORM="${{ env.RENOVATE_PLATFORM }}" \
             -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
             -e RENOVATE_ALLOWED_COMMANDS='${{ env.RENOVATE_ALLOWED_COMMANDS }}' \
             -v "$PWD:/usr/app/repo" \
             renovate/renovate:latest \
-            --base-dir /usr/app/repo
+            --base-dir /usr/app/repo \
+            --cache-dir /tmp/renovate
