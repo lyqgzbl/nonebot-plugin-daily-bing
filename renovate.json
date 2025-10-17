@@ -7,7 +7,7 @@
     ":automergePr",
     ":disableRateLimiting"
   ],
-  "enabledManagers": ["pep621", "uv"],
+  "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
   "packageRules": [
     {
