@@ -11,15 +11,14 @@
   "prCreation": "immediate",
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
-  "managers": {
-    "pep621": {
-      "preRunTasks": [
-        {
-          "command": "containerbase install uv"
-        }
-      ]
-    }
+  "pep621": {
+    "preRunTasks": [
+      {
+        "command": "containerbase install uv"
+      }
+    ]
   },
+
   "packageRules": [
     {
       "matchPackageNames": [
