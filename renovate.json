@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "matchManagers": ["uv"],
+      "groupName": "Python deps (uv)",
+      "commitMessageTopic": "Python deps (uv)",
+      "schedule": ["before 6am on monday"],
+      "automerge": false,
+      "postUpgradeTasks": {
+        "commands": ["uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "schedule": ["before 6am on monday"]
+    }
+  ]
+}
