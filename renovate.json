@@ -8,7 +8,15 @@
     ":automergePr",
     ":disableRateLimiting"
   ],
-  "prCreation": "immediate",  
+  "prCreation": "immediate", 
+  
+  "preRunTasks": [
+    {
+      "command": "containerbase install uv",
+      "managers": ["pep621"]
+    }
+  ],
+  
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
   "packageRules": [
@@ -26,7 +34,7 @@
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["pip install uv", "uv lock"],
+        "commands": ["uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
@@ -36,7 +44,7 @@
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["pip install uv", "uv lock"],
+        "commands": ["uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
@@ -46,7 +54,7 @@
       "automerge": true,
       "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
-        "commands": ["pip install uv", "uv lock"],
+        "commands": ["uv lock"],
         "fileFilters": ["pyproject.toml"]
       }
     },
