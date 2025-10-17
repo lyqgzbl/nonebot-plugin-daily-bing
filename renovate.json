@@ -10,12 +10,6 @@
   ],
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
-
-  "allowedPostUpgradeCommands": [
-    "^(pip install uv)$",
-    "^(uv lock)$"
-  ],
-
   "packageRules": [
     {
       "matchPackageNames": [
