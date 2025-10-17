@@ -8,6 +8,9 @@
     ":automergePr",
     ":disableRateLimiting"
   ],
+  "prCreation": "immediate",
+  "logLevel": "debug",
+  
   "enabledManagers": ["pep621"],
   "rangeStrategy": "bump",
   "packageRules": [
@@ -23,19 +26,31 @@
       ],
       "groupName": "NoneBot Plugins",
       "automerge": true,
-      "matchUpdateTypes": ["patch", "minor"]
+      "matchUpdateTypes": ["patch", "minor"],
+      "postUpgradeTasks": {
+        "commands": ["pip install uv", "uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
     },
     {
       "matchPackageNames": ["aiofiles", "httpx"],
       "groupName": "Base Python Libraries",
       "automerge": true,
-      "matchUpdateTypes": ["patch", "minor"]
+      "matchUpdateTypes": ["patch", "minor"],
+      "postUpgradeTasks": {
+        "commands": ["pip install uv", "uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
     },
     {
       "matchPackageNames": ["ruff"],
       "groupName": "Development Dependencies",
       "automerge": true,
-      "matchUpdateTypes": ["patch", "minor"]
+      "matchUpdateTypes": ["patch", "minor"],
+      "postUpgradeTasks": {
+        "commands": ["pip install uv", "uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
     },
     {
       "matchManagers": ["github-actions"],
