@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "lyqgzbl", email = "122811297+lyqgzbl@users.noreply.github.com" }
 ]
-requires-python = ">=3.10, <4.0"
+requires-python = ">=3.14.0, <4.0"
 license = "MIT"
 dependencies = [
   "aiofiles>=24.1.0",
