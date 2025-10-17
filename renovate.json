@@ -3,17 +3,46 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":dependencyDashboard"
+    ":automergeMinor",
+    ":automergePr",
+    ":disableRateLimiting"
   ],
-  "labels": ["dependencies"],
+  "enabledManagers": ["pep621", "uv"],
   "rangeStrategy": "bump",
   "packageRules": [
     {
-      "matchManagers": ["uv"],
-      "groupName": "Python deps (uv)",
-      "commitMessageTopic": "Python deps (uv)",
-      "schedule": ["before 6am on monday"],
-      "automerge": false,
+      "matchPackageNames": [
+        "nonebot2",
+        "nonebot-plugin-argot",
+        "nonebot-plugin-alconna",
+        "nonebot-plugin-localstore",
+        "nonebot-plugin-htmlrender",
+        "nonebot-plugin-apscheduler",
+        "nonebot-plugin-daily-bing"
+      ],
+      "groupName": "NoneBot Plugins",
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "minor"],
+      "postUpgradeTasks": {
+        "commands": ["uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
+    },
+    {
+      "matchPackagePatterns": ["^aiofiles$", "^httpx$"],
+      "groupName": "Base Python Libraries",
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "minor"],
+      "postUpgradeTasks": {
+        "commands": ["uv lock"],
+        "fileFilters": ["pyproject.toml"]
+      }
+    },
+    {
+      "matchPackageNames": ["ruff"],
+      "groupName": "Development Dependencies",
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "minor"],
       "postUpgradeTasks": {
         "commands": ["uv lock"],
         "fileFilters": ["pyproject.toml"]
@@ -22,7 +51,7 @@
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "schedule": ["before 6am on monday"]
+      "automerge": true
     }
   ]
 }
