@@ -38,11 +38,9 @@ jobs:
         run: |
           docker run \
             --rm \
-            --user "$(id -u):$(id -g)" \
             -e RENOVATE_TOKEN="${{ secrets.RENOVATE_TOKEN }}" \
             -e RENOVATE_PLATFORM="${{ env.RENOVATE_PLATFORM }}" \
             -e LOG_LEVEL="${{ env.LOG_LEVEL }}" \
-            -e RENOVATE_ALLOWED_COMMANDS='${{ env.RENOVATE_ALLOWED_COMMANDS }}' \
             -v "$PWD:/usr/app/repo" \
             "${{ env.IMAGE_NAME }}" \
             --base-dir /usr/app/repo \
