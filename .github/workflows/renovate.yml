@@ -34,6 +34,9 @@ jobs:
           git config --global user.email "renovate[bot]@users.noreply.github.com"
           git config --global user.name "Renovate Bot"
 
+      - name: 🔒 Fix Directory Permissions
+        run: sudo chmod -R a+rwX $PWD
+
       - name: 🚀 Run Renovate Self-Hosted
         run: |
           docker run \
