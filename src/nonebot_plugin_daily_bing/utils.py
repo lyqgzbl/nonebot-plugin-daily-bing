@@ -196,11 +196,18 @@ async def send_daily_bing(target: MsgTarget):
                 bot=bot,
             )
             return
-        await UniMessage.image(
+        message = await UniMessage.image(
             raw=img_bytes
         ).send(
             target=target,
             bot=bot,
+        )
+        await add_argot(
+            message_id=get_message_id(message) or "",
+            name="原图",
+            command="原图",
+            segment=Text(img_url),
+            expired_at=timedelta(minutes=2),
         )
 
 
@@ -232,7 +239,6 @@ async def schedule_daily_bing_task(send_time: str, target: MsgTarget):
         raise ValueError(f"时间格式错误：{send_time}")
     except Exception as e:
         logger.error(f"设置设置必应每日壁纸定时任务时发生错误：{e}")
-
 
 
 async def restore_daily_bing_tasks():
