@@ -16,17 +16,18 @@ from nonebot_plugin_argot import Text
 import nonebot_plugin_localstore as store
 from nonebot_plugin_apscheduler import scheduler
 from nonebot_plugin_argot.extension import ArgotExtension
-from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget, Target
+from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget
 from nonebot_plugin_alconna import Option, Args, Alconna, CommandMeta, on_alconna, Match
 
 from .config import Config
 from .infopuuzzle import generate_daily_bing_image
 from .utils import (
+    generate_job_id,
+    load_task_configs,
     fetch_daily_bing_data,
-    fetch_randomly_daily_bing_data,
     remove_daily_bing_task,
     schedule_daily_bing_task,
-    generate_job_id,
+    fetch_randomly_daily_bing_data,
 )
 
 __plugin_meta__ = PluginMetadata(
@@ -173,14 +174,9 @@ async def handle_andomly_daily_bing():
 
 
 @daily_bing_setting.assign("status")
-async def daily_bing_status(event, target: MsgTarget):
-    if not task_config_file.exists():
-        await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+async def daily_bing_status(target: MsgTarget):
     try:
-        async with aiofiles.open(task_config_file, encoding="utf-8") as f:
-            content = await f.read()
-            config = json.loads(content)
-        tasks = config.get("tasks") or []
+        tasks = await load_task_configs(locked=True)
     except Exception as e:
         await daily_bing_setting.finish(f"加载任务配置时发生错误：{e}")
     if not tasks:
@@ -188,8 +184,7 @@ async def daily_bing_status(event, target: MsgTarget):
     current_target = target
     for task in tasks:
         target_data = task["target"]
-        data_target = Target.load(target_data)
-        if data_target == current_target:
+        if target_data == current_target:
             job_id = generate_job_id(current_target)
             job = scheduler.get_job(job_id)
             if job:
