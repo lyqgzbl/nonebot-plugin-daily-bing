@@ -12,8 +12,8 @@ require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_htmlrender")
 require("nonebot_plugin_apscheduler")
-from nonebot_plugin_argot import Text
 import nonebot_plugin_localstore as store
+from nonebot_plugin_argot import Text, Image
 from nonebot_plugin_apscheduler import scheduler
 from nonebot_plugin_argot.extension import ArgotExtension
 from nonebot_plugin_alconna.uniseg import UniMessage, MsgTarget
@@ -134,6 +134,8 @@ async def handle_daily_bing():
     explanation = explanation.replace("<p>", "").replace("</p>", "")
     if daily_bing_hd_image:
         img_url = data.get("imgurl_d") or data.get("imgurl")
+    else:
+        img_url = data.get("imgurl")
     if not daily_bing_infopuzzle:
         await UniMessage.text(
             f"{data.get('imgtitle','今日必应壁纸')}"
@@ -156,6 +158,12 @@ async def handle_daily_bing():
             raw=img_bytes
         ).send(
             reply_to=True,
+            argot={
+                "name": "原图",
+                "segment": Image(url=img_url),
+                "command": "原图",
+                "expired_at": 360,
+            },
         )
 
 
