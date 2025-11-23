@@ -7,9 +7,9 @@ import httpx
 import aiofiles
 from nonebot.log import logger
 from nonebot import get_plugin_config
+from nonebot import get_driver, get_bot
 import nonebot_plugin_localstore as store
 from nonebot_plugin_apscheduler import scheduler
-from nonebot import get_driver, get_bot, get_bots
 from nonebot_plugin_argot import Text, add_argot, get_message_id
 from nonebot_plugin_alconna.uniseg import MsgTarget, Target, UniMessage
 
@@ -108,15 +108,15 @@ async def save_task_configs(tasks: list, locked: bool = False):
 async def remove_daily_bing_task(target: MsgTarget):
     job_id = generate_job_id(target)
     job = scheduler.get_job(job_id)
-    if job:
-        scheduler.remove_job(job_id)
-        logger.info(f"已移除每日必应壁纸定时任务 (目标: {target})")
-        async with config_lock:
-            tasks = await load_task_configs(locked=True)
-            tasks = [task for task in tasks if task["target"] != target]
-            await save_task_configs(tasks, locked=True)
-    else:
-        logger.info(f"未找到每日必应壁纸定时任务 (目标: {target})")
+    if not job:
+        logger.debug(f"未找到每日必应壁纸定时任务 (目标: {target})")
+        return
+    scheduler.remove_job(job_id)
+    logger.debug(f"已移除每日必应壁纸定时任务 (目标: {target})")
+    async with config_lock:
+        tasks = await load_task_configs(locked=True)
+        tasks = [task for task in tasks if task["target"] != target]
+        await save_task_configs(tasks, locked=True)
 
 
 async def load_task_configs(locked: bool = False) -> list[dict]:
@@ -149,29 +149,23 @@ async def load_task_configs(locked: bool = False) -> list[dict]:
 
 async def send_daily_bing(target: MsgTarget):
     logger.debug(f"主动发送目标: {target}")
-    bots = get_bots()
-    if target.self_id in bots:
+    try:
         bot = get_bot(target.self_id)
-    else:
-        logger.warning("<yellow>未找到可用的机器人实例，此任务将被跳过</yellow>")
+    except Exception:
+        logger.opt(colors=True).warning("<yellow>未找到可用的机器人实例，此任务将被跳过</yellow>")
         return
-    if not daily_bing_cache_json.exists():
-        success = await fetch_daily_bing_data()
-        if not success:
-            await UniMessage.text("获取今日必应壁纸失败请稍后再试").send(
-                target=target,
-                bot=bot,
-            )
-            return
+    if not daily_bing_cache_json.exists() and not await fetch_daily_bing_data():
+        await UniMessage.text("未能获取到今日的必应壁纸，请稍后再试。").send(
+            target=target,
+            bot=bot,
+        )
+        return
     async with aiofiles.open(str(daily_bing_cache_json), encoding="utf-8") as f:
-        content = await f.read()
-        data = json.loads(content)
-        explanation = data.get("imgdetail", "")
-        explanation = explanation.replace("<p>", "").replace("</p>", "")
-        if hd_image:
-            img_url = data.get("imgurl_d")
-        else:
-            img_url = data.get("imgurl")
+        data = json.loads(await f.read())
+    explanation = (data.get("imgdetail", "")).replace("<p>", "").replace("</p>", "")
+    img_url = (
+        data.get("imgurl_d") or data.get("imgurl") if hd_image else data.get("imgurl")
+    )
     if not daily_bing_infopuzzle:
         message = await UniMessage.text(
             f"{data.get('imgtitle','今日必应壁纸')}"
@@ -188,27 +182,26 @@ async def send_daily_bing(target: MsgTarget):
             segment=Text(explanation),
             expired_at=timedelta(minutes=2),
         )
-    else:
-        img_bytes = await generate_daily_bing_image()
-        if not img_bytes:
-            await UniMessage.text("生成今日必应壁纸图片失败请稍后再试").send(
-                target=target,
-                bot=bot,
-            )
-            return
-        message = await UniMessage.image(
-            raw=img_bytes
-        ).send(
+    img_bytes = await generate_daily_bing_image()
+    if not img_bytes:
+        await UniMessage.text("生成今日必应壁纸图片失败请稍后再试").send(
             target=target,
             bot=bot,
         )
-        await add_argot(
-            message_id=get_message_id(message) or "",
-            name="原图",
-            command="原图",
-            segment=Text(img_url),
-            expired_at=timedelta(minutes=2),
-        )
+        return
+    message = await UniMessage.image(
+        raw=img_bytes
+    ).send(
+        target=target,
+        bot=bot,
+    )
+    await add_argot(
+        message_id=get_message_id(message) or "",
+        name="原图",
+        command="原图",
+        segment=Text(img_url),
+        expired_at=timedelta(minutes=2),
+    )
 
 
 async def schedule_daily_bing_task(send_time: str, target: MsgTarget):
@@ -244,26 +237,26 @@ async def schedule_daily_bing_task(send_time: str, target: MsgTarget):
 async def restore_daily_bing_tasks():
     try:
         tasks = await load_task_configs()
-        if tasks:
-            for task in tasks:
-                send_time = task.get("send_time")
-                target = task.get("target")
-                if send_time and target:
-                    hour, minute = map(int, send_time.split(":"))
-                    job_id = generate_job_id(target)
-                    scheduler.add_job(
-                        func=send_daily_bing,
-                        trigger="cron",
-                        args=[target],
-                        hour=hour,
-                        minute=minute,
-                        id=job_id,
-                        max_instances=1,
-                        replace_existing=True,
-                    )
-            logger.info(f"已恢复 {len(tasks)} 个每日必应壁纸定时任务")
-        else:
+        if not tasks:
             logger.debug("没有找到任何每日必应壁纸定时任务配置")
+            return
+        for task in tasks:
+            send_time = task["send_time"]
+            target = task["target"]
+            if send_time and target:
+                hour, minute = map(int, send_time.split(":"))
+                job_id = generate_job_id(target)
+                scheduler.add_job(
+                    func=send_daily_bing,
+                    trigger="cron",
+                    args=[target],
+                    hour=hour,
+                    minute=minute,
+                    id=job_id,
+                    max_instances=1,
+                    replace_existing=True,
+                )
+        logger.debug("已恢复所有每日必应壁纸定时任务")
     except Exception as e:
         logger.error(f"恢复每日必应壁纸定时任务时发生错误：{e}")
 

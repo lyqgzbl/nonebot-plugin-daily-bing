@@ -23,7 +23,6 @@ from .config import Config
 from .infopuuzzle import generate_daily_bing_image
 from .utils import (
     generate_job_id,
-    load_task_configs,
     fetch_daily_bing_data,
     remove_daily_bing_task,
     schedule_daily_bing_task,
@@ -123,19 +122,15 @@ daily_bing_setting = on_alconna(
 
 @daily_bing_command.handle()
 async def handle_daily_bing():
-    if not daily_bing_cache_json.exists():
-        success = await fetch_daily_bing_data()
-        if not success:
-            await daily_bing_command.finish("获取今日必应壁纸失败请稍后再试")
+    if not daily_bing_cache_json.exists() and not await fetch_daily_bing_data():
+        await daily_bing_command.finish("获取今日必应壁纸失败请稍后再试")
     async with aiofiles.open(str(daily_bing_cache_json), encoding="utf-8") as f:
-        content = await f.read()
-        data = json.loads(content)
-    explanation = data.get("imgdetail", "")
-    explanation = explanation.replace("<p>", "").replace("</p>", "")
-    if daily_bing_hd_image:
-        img_url = data.get("imgurl_d") or data.get("imgurl")
-    else:
-        img_url = data.get("imgurl")
+        data = json.loads(await f.read())
+    explanation = (data.get("imgdetail", "")).replace("<p>", "").replace("</p>", "")
+    img_url = (
+        data.get("imgurl_d") or data.get("imgurl") if daily_bing_hd_image else
+        data.get("imgurl")
+    )
     if not daily_bing_infopuzzle:
         await UniMessage.text(
             f"{data.get('imgtitle','今日必应壁纸')}"
@@ -150,21 +145,20 @@ async def handle_daily_bing():
                 "expired_at": 360,
             },
         )
-    else:
-        img_bytes = await generate_daily_bing_image()
-        if not img_bytes:
-            await daily_bing_command.finish("生成今日必应壁纸图片失败请稍后再试")
-        await UniMessage.image(
-            raw=img_bytes
-        ).send(
-            reply_to=True,
-            argot={
-                "name": "原图",
-                "segment": Image(url=img_url),
-                "command": "原图",
-                "expired_at": 360,
-            },
-        )
+    img_bytes = await generate_daily_bing_image()
+    if not img_bytes:
+        await daily_bing_command.finish("生成今日必应壁纸图片失败请稍后再试")
+    await UniMessage.image(
+        raw=img_bytes
+    ).send(
+        reply_to=True,
+        argot={
+            "name": "原图",
+            "segment": Image(url=img_url),
+            "command": "原图",
+            "expired_at": 360,
+        },
+    )
 
 
 @randomly_daily_bing_command.handle()
@@ -183,29 +177,18 @@ async def handle_andomly_daily_bing():
 
 @daily_bing_setting.assign("status")
 async def daily_bing_status(target: MsgTarget):
-    try:
-        tasks = await load_task_configs(locked=True)
-    except Exception as e:
-        await daily_bing_setting.finish(f"加载任务配置时发生错误：{e}")
-    if not tasks:
+    job_id = generate_job_id(target)
+    job = scheduler.get_job(job_id)
+    if not job:
         await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
-    current_target = target
-    for task in tasks:
-        target_data = task["target"]
-        if target_data == current_target:
-            job_id = generate_job_id(current_target)
-            job = scheduler.get_job(job_id)
-            if job:
-                next_run = (
-                    job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
-                    if job.next_run_time else "未知"
-                )
-                await daily_bing_setting.finish(
-                    f"今日必应壁纸定时任务已开启 | 下次发送时间: {next_run}"
-                )
-            else:
-                await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
-    await daily_bing_setting.finish("今日必应壁纸定时任务未开启")
+    next_run = (
+        job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+        if job.next_run_time else "未知"
+    )
+    await daily_bing_setting.finish(
+        f"今日必应壁纸定时任务已开启 | 下次发送时间: {next_run}"
+    )
+
 
 
 @daily_bing_setting.assign("stop")
@@ -216,20 +199,19 @@ async def daily_bing_stop(target: MsgTarget):
 
 @daily_bing_setting.assign("start")
 async def daily_bing_start(send_time: Match[str], target: MsgTarget):
-    if send_time.available:
-        time = send_time.result
-        if not is_valid_time_format(time):
-            await daily_bing_setting.send("时间格式不正确,请使用 HH:MM 格式")
-        try:
-            await schedule_daily_bing_task(time, target)
-            await daily_bing_setting.send(
-                f"已开启今日必应壁纸定时任务,发送时间为 {time}"
-            )
-        except Exception as e:
-            logger.error(f"设置今日必应壁纸定时任务时发生错误:{e}")
-            await daily_bing_setting.finish("设置今日必应壁纸定时任务时发生错误")
-    else:
+    if not send_time.available:
         await schedule_daily_bing_task(default_time, target)
         await daily_bing_setting.finish(
             f"已开启今日必应壁纸定时任务,默认发送时间为 {default_time}"
         )
+    time = send_time.result
+    if not is_valid_time_format(time):
+        await daily_bing_setting.finish("时间格式不正确,请使用 HH:MM 格式")
+    try:
+        await schedule_daily_bing_task(time, target)
+        await daily_bing_setting.finish(
+            f"已开启今日必应壁纸定时任务,发送时间为 {time}"
+        )
+    except Exception as e:
+        logger.error(f"设置今日必应壁纸定时任务时发生错误:{e}")
+        await daily_bing_setting.finish("设置今日必应壁纸定时任务时发生错误")
